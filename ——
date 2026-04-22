@@ -1,0 +1,777 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local oldMain = PlayerGui:FindFirstChild("FancyTabsUI")
+if oldMain then
+	oldMain:Destroy()
+end
+
+local playerThumb = Players:GetUserThumbnailAsync(
+	LocalPlayer.UserId,
+	Enum.ThumbnailType.HeadShot,
+	Enum.ThumbnailSize.Size420x420
+)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FancyTabsUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
+
+local function makeCorner(obj, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius)
+	c.Parent = obj
+	return c
+end
+
+local function makeStroke(obj, color, transparency, thickness)
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Transparency = transparency or 0
+	s.Thickness = thickness or 1
+	s.Parent = obj
+	return s
+end
+
+local function tween(obj, info, props)
+	local t = TweenService:Create(obj, info, props)
+	t:Play()
+	return t
+end
+
+local function createDrag(frame, dragArea)
+	local dragging = false
+	local dragStart
+	local startPos
+	local dragInput
+	local activeTween
+
+	local function update(input)
+		local delta = input.Position - dragStart
+		local goal = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+
+		if activeTween then
+			activeTween:Cancel()
+		end
+
+		activeTween = tween(
+			frame,
+			TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{Position = goal}
+		)
+	end
+
+	dragArea.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	dragArea.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input == dragInput then
+			update(input)
+		end
+	end)
+end
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Size = UDim2.new(0, 520, 0, 360)
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+Main.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Parent = ScreenGui
+makeCorner(Main, 18)
+makeStroke(Main, Color3.fromRGB(60, 60, 60), 0.2, 1.2)
+
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 24, 24)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 14, 14))
+}
+MainGradient.Rotation = 90
+MainGradient.Parent = Main
+
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 46)
+TopBar.BackgroundTransparency = 1
+TopBar.Parent = Main
+
+local Title = Instance.new("TextLabel")
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 16, 0, 0)
+Title.Size = UDim2.new(0, 170, 1, 0)
+Title.Text = "Doxx"
+Title.TextColor3 = Color3.fromRGB(245, 245, 245)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -38, 0, 8)
+CloseButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Color3.fromRGB(235, 235, 235)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 20
+CloseButton.BorderSizePixel = 0
+CloseButton.AutoButtonColor = false
+CloseButton.Parent = TopBar
+makeCorner(CloseButton, 999)
+makeStroke(CloseButton, Color3.fromRGB(75, 75, 75), 0.25, 1)
+
+local TabsHolder = Instance.new("Frame")
+TabsHolder.Name = "TabsHolder"
+TabsHolder.Size = UDim2.new(0, 255, 0, 32)
+TabsHolder.Position = UDim2.new(1, -299, 0, 7)
+TabsHolder.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+TabsHolder.BorderSizePixel = 0
+TabsHolder.Parent = TopBar
+makeCorner(TabsHolder, 999)
+makeStroke(TabsHolder, Color3.fromRGB(65, 65, 65), 0.35, 1)
+
+local Selector = Instance.new("Frame")
+Selector.Size = UDim2.new(1/3, -4, 1, -4)
+Selector.Position = UDim2.new(0, 2, 0, 2)
+Selector.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Selector.BorderSizePixel = 0
+Selector.Parent = TabsHolder
+makeCorner(Selector, 999)
+
+local MainTab = Instance.new("TextButton")
+MainTab.BackgroundTransparency = 1
+MainTab.Size = UDim2.new(1/3, 0, 1, 0)
+MainTab.Text = "Main"
+MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainTab.Font = Enum.Font.GothamMedium
+MainTab.TextSize = 14
+MainTab.Parent = TabsHolder
+
+local MechanicsTab = Instance.new("TextButton")
+MechanicsTab.BackgroundTransparency = 1
+MechanicsTab.Position = UDim2.new(1/3, 0, 0, 0)
+MechanicsTab.Size = UDim2.new(1/3, 0, 1, 0)
+MechanicsTab.Text = "Mechanics"
+MechanicsTab.TextColor3 = Color3.fromRGB(160, 160, 160)
+MechanicsTab.Font = Enum.Font.GothamMedium
+MechanicsTab.TextSize = 14
+MechanicsTab.Parent = TabsHolder
+
+local InfoTab = Instance.new("TextButton")
+InfoTab.BackgroundTransparency = 1
+InfoTab.Position = UDim2.new(2/3, 0, 0, 0)
+InfoTab.Size = UDim2.new(1/3, 0, 1, 0)
+InfoTab.Text = "Info"
+InfoTab.TextColor3 = Color3.fromRGB(160, 160, 160)
+InfoTab.Font = Enum.Font.GothamMedium
+InfoTab.TextSize = 14
+InfoTab.Parent = TabsHolder
+
+local ContentHolder = Instance.new("Frame")
+ContentHolder.Size = UDim2.new(1, -24, 1, -64)
+ContentHolder.Position = UDim2.new(0, 12, 0, 52)
+ContentHolder.BackgroundTransparency = 1
+ContentHolder.ClipsDescendants = true
+ContentHolder.Parent = Main
+
+local function createPage(name, pos)
+	local page = Instance.new("Frame")
+	page.Name = name
+	page.Size = UDim2.new(1, 0, 1, 0)
+	page.Position = pos
+	page.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+	page.BorderSizePixel = 0
+	page.Parent = ContentHolder
+	makeCorner(page, 16)
+	makeStroke(page, Color3.fromRGB(60, 60, 60), 0.35, 1)
+
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Name = "Scroll"
+	scroll.Size = UDim2.new(1, 0, 1, 0)
+	scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+	scroll.AutomaticCanvasSize = Enum.AutomaticSize.None
+	scroll.ScrollBarThickness = 4
+	scroll.ScrollBarImageColor3 = Color3.fromRGB(90, 90, 90)
+	scroll.BackgroundTransparency = 1
+	scroll.BorderSizePixel = 0
+	scroll.Parent = page
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingTop = UDim.new(0, 16)
+	padding.PaddingLeft = UDim.new(0, 16)
+	padding.PaddingRight = UDim.new(0, 16)
+	padding.PaddingBottom = UDim.new(0, 16)
+	padding.Parent = scroll
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 12)
+	layout.FillDirection = Enum.FillDirection.Vertical
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = scroll
+
+	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 32)
+	end)
+
+	task.defer(function()
+		scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 32)
+	end)
+
+	return page, scroll, layout
+end
+
+local MainPage, MainScroll, MainLayout = createPage("MainPage", UDim2.new(0, 0, 0, 0))
+local MechanicsPage, MechanicsScroll, MechanicsLayout = createPage("MechanicsPage", UDim2.new(1, 30, 0, 0))
+local InfoPage, InfoScroll, InfoLayout = createPage("InfoPage", UDim2.new(1, 30, 0, 0))
+
+local UILibrary = {}
+UILibrary.__index = UILibrary
+
+local function createSection(parentScroll, titleText)
+	local section = Instance.new("Frame")
+	section.Name = titleText .. "Section"
+	section.Size = UDim2.new(1, 0, 0, 46)
+	section.AutomaticSize = Enum.AutomaticSize.Y
+	section.BackgroundColor3 = Color3.fromRGB(27, 27, 27)
+	section.BorderSizePixel = 0
+	section.Parent = parentScroll
+	makeCorner(section, 14)
+	makeStroke(section, Color3.fromRGB(70, 70, 70), 0.35, 1)
+
+	local title = Instance.new("TextLabel")
+	title.BackgroundTransparency = 1
+	title.Size = UDim2.new(1, -20, 0, 20)
+	title.Position = UDim2.new(0, 14, 0, 10)
+	title.Text = titleText
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 16
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = section
+
+	local holder = Instance.new("Frame")
+	holder.BackgroundTransparency = 1
+	holder.Position = UDim2.new(0, 12, 0, 38)
+	holder.Size = UDim2.new(1, -24, 0, 0)
+	holder.AutomaticSize = Enum.AutomaticSize.Y
+	holder.Parent = section
+
+	local holderLayout = Instance.new("UIListLayout")
+	holderLayout.Padding = UDim.new(0, 8)
+	holderLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	holderLayout.Parent = holder
+
+	local holderPadding = Instance.new("UIPadding")
+	holderPadding.PaddingBottom = UDim.new(0, 12)
+	holderPadding.Parent = holder
+
+	local api = {}
+
+	function api:AddLabel(text)
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.new(1, 0, 0, 18)
+		label.AutomaticSize = Enum.AutomaticSize.Y
+		label.Text = text
+		label.TextWrapped = true
+		label.TextColor3 = Color3.fromRGB(170, 170, 170)
+		label.Font = Enum.Font.Gotham
+		label.TextSize = 14
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.TextYAlignment = Enum.TextYAlignment.Top
+		label.Parent = holder
+		return label
+	end
+
+	function api:AddButton(text, callback)
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.new(1, 0, 0, 38)
+		button.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+		button.BorderSizePixel = 0
+		button.Text = text
+		button.TextColor3 = Color3.fromRGB(240, 240, 240)
+		button.Font = Enum.Font.GothamBold
+		button.TextSize = 15
+		button.AutoButtonColor = false
+		button.Parent = holder
+		makeCorner(button, 10)
+		makeStroke(button, Color3.fromRGB(80, 80, 80), 0.25, 1)
+
+		button.MouseEnter:Connect(function()
+			tween(button, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			})
+		end)
+
+		button.MouseLeave:Connect(function()
+			tween(button, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+			})
+		end)
+
+		button.MouseButton1Click:Connect(function()
+			if callback then
+				callback(button)
+			end
+		end)
+
+		return button
+	end
+
+	function api:AddToggle(text, default, callback)
+		local state = default == true
+
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.new(1, 0, 0, 38)
+		button.BackgroundColor3 = state and Color3.fromRGB(42, 42, 42) or Color3.fromRGB(33, 33, 33)
+		button.BorderSizePixel = 0
+		button.Text = text .. ": " .. (state and "ON" or "OFF")
+		button.TextColor3 = Color3.fromRGB(240, 240, 240)
+		button.Font = Enum.Font.GothamBold
+		button.TextSize = 15
+		button.AutoButtonColor = false
+		button.Parent = holder
+		makeCorner(button, 10)
+		makeStroke(button, Color3.fromRGB(80, 80, 80), 0.25, 1)
+
+		button.MouseButton1Click:Connect(function()
+			state = not state
+			button.Text = text .. ": " .. (state and "ON" or "OFF")
+			button.BackgroundColor3 = state and Color3.fromRGB(42, 42, 42) or Color3.fromRGB(33, 33, 33)
+
+			if callback then
+				callback(state, button)
+			end
+		end)
+
+		local toggleApi = {}
+
+		function toggleApi:Set(value)
+			state = value == true
+			button.Text = text .. ": " .. (state and "ON" or "OFF")
+			button.BackgroundColor3 = state and Color3.fromRGB(42, 42, 42) or Color3.fromRGB(33, 33, 33)
+			if callback then
+				callback(state, button)
+			end
+		end
+
+		function toggleApi:Get()
+			return state
+		end
+
+		function toggleApi:GetButton()
+			return button
+		end
+
+		return toggleApi
+	end
+
+	function api:AddCard(titleText, descText)
+		local card = Instance.new("Frame")
+		card.Size = UDim2.new(1, 0, 0, 76)
+		card.AutomaticSize = Enum.AutomaticSize.Y
+		card.BackgroundColor3 = Color3.fromRGB(31, 31, 31)
+		card.BorderSizePixel = 0
+		card.Parent = holder
+		makeCorner(card, 12)
+		makeStroke(card, Color3.fromRGB(76, 76, 76), 0.3, 1)
+
+		local titleLabel = Instance.new("TextLabel")
+		titleLabel.BackgroundTransparency = 1
+		titleLabel.Position = UDim2.new(0, 12, 0, 10)
+		titleLabel.Size = UDim2.new(1, -24, 0, 20)
+		titleLabel.Text = titleText
+		titleLabel.TextColor3 = Color3.fromRGB(245, 245, 245)
+		titleLabel.Font = Enum.Font.GothamBold
+		titleLabel.TextSize = 15
+		titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+		titleLabel.Parent = card
+
+		local descLabel = Instance.new("TextLabel")
+		descLabel.BackgroundTransparency = 1
+		descLabel.Position = UDim2.new(0, 12, 0, 34)
+		descLabel.Size = UDim2.new(1, -24, 0, 0)
+		descLabel.AutomaticSize = Enum.AutomaticSize.Y
+		descLabel.Text = descText
+		descLabel.TextWrapped = true
+		descLabel.TextColor3 = Color3.fromRGB(170, 170, 170)
+		descLabel.Font = Enum.Font.Gotham
+		descLabel.TextSize = 13
+		descLabel.TextXAlignment = Enum.TextXAlignment.Left
+		descLabel.TextYAlignment = Enum.TextYAlignment.Top
+		descLabel.Parent = card
+
+		local bottomPad = Instance.new("UIPadding")
+		bottomPad.PaddingBottom = UDim.new(0, 12)
+		bottomPad.Parent = card
+
+		return card
+	end
+
+	return api
+end
+
+function UILibrary.new()
+	local self = setmetatable({}, UILibrary)
+
+	self.Main = createSection(MainScroll, "Main")
+	self.Mechanics = createSection(MechanicsScroll, "Mechanics")
+	self.Info = createSection(InfoScroll, "Info")
+
+	return self
+end
+
+local UI = UILibrary.new()
+
+local HeaderRow = Instance.new("Frame")
+HeaderRow.Size = UDim2.new(1, 0, 0, 92)
+HeaderRow.BackgroundTransparency = 1
+HeaderRow.Parent = MainScroll
+
+HeaderRow.LayoutOrder = 0
+
+local Avatar = Instance.new("ImageLabel")
+Avatar.Size = UDim2.new(0, 90, 0, 90)
+Avatar.Position = UDim2.new(0, 0, 0, 1)
+Avatar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Avatar.BorderSizePixel = 0
+Avatar.Image = playerThumb
+Avatar.Parent = HeaderRow
+makeCorner(Avatar, 999)
+makeStroke(Avatar, Color3.fromRGB(80, 80, 80), 0.2, 1.2)
+
+local Welcome = Instance.new("TextLabel")
+Welcome.BackgroundTransparency = 1
+Welcome.Size = UDim2.new(1, -108, 0, 24)
+Welcome.Position = UDim2.new(0, 108, 0, 6)
+Welcome.Text = "Welcome"
+Welcome.TextColor3 = Color3.fromRGB(145, 145, 145)
+Welcome.Font = Enum.Font.Gotham
+Welcome.TextSize = 15
+Welcome.TextXAlignment = Enum.TextXAlignment.Left
+Welcome.Parent = HeaderRow
+
+local Username = Instance.new("TextLabel")
+Username.BackgroundTransparency = 1
+Username.Size = UDim2.new(1, -108, 0, 28)
+Username.Position = UDim2.new(0, 108, 0, 28)
+Username.Text = "@" .. LocalPlayer.Name
+Username.TextColor3 = Color3.fromRGB(245, 245, 245)
+Username.Font = Enum.Font.GothamBold
+Username.TextSize = 24
+Username.TextXAlignment = Enum.TextXAlignment.Left
+Username.Parent = HeaderRow
+
+local UserId = Instance.new("TextLabel")
+UserId.BackgroundTransparency = 1
+UserId.Size = UDim2.new(1, -108, 0, 20)
+UserId.Position = UDim2.new(0, 108, 0, 60)
+UserId.Text = "User ID: " .. LocalPlayer.UserId
+UserId.TextColor3 = Color3.fromRGB(160, 160, 160)
+UserId.Font = Enum.Font.Gotham
+UserId.TextSize = 14
+UserId.TextXAlignment = Enum.TextXAlignment.Left
+UserId.Parent = HeaderRow
+
+UI.Main:AddCard("Display Name", LocalPlayer.DisplayName)
+UI.Main:AddCard("Username", "@" .. LocalPlayer.Name)
+UI.Main:AddCard("User ID", tostring(LocalPlayer.UserId))
+UI.Main:AddCard("Account Age", tostring(LocalPlayer.AccountAge) .. " days")
+
+local MiniLogo = Instance.new("TextButton")
+MiniLogo.Name = "MiniLogo"
+MiniLogo.AnchorPoint = Vector2.new(0.5, 0.5)
+MiniLogo.Size = UDim2.new(0, 58, 0, 58)
+MiniLogo.Position = UDim2.new(0.5, 0, 0, 48)
+MiniLogo.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MiniLogo.Text = "DX"
+MiniLogo.TextColor3 = Color3.fromRGB(245, 245, 245)
+MiniLogo.Font = Enum.Font.GothamBold
+MiniLogo.TextSize = 18
+MiniLogo.BorderSizePixel = 0
+MiniLogo.Visible = false
+MiniLogo.Parent = ScreenGui
+makeCorner(MiniLogo, 999)
+makeStroke(MiniLogo, Color3.fromRGB(75, 75, 75), 0.2, 1.2)
+
+createDrag(Main, TopBar)
+
+local opened = true
+local switching = false
+local busy = false
+
+local openSize = UDim2.new(0, 520, 0, 360)
+local closedSize = UDim2.new(0, 58, 0, 58)
+local centerPos = UDim2.new(0.5, 0, 0.5, 0)
+local logoPos = UDim2.new(0.5, 0, 0, 48)
+
+Main.Size = UDim2.new(0, 0, 0, 0)
+Main.Position = centerPos
+Main.BackgroundTransparency = 1
+Title.TextTransparency = 1
+TabsHolder.BackgroundTransparency = 1
+Selector.BackgroundTransparency = 1
+MainTab.TextTransparency = 1
+MechanicsTab.TextTransparency = 1
+InfoTab.TextTransparency = 1
+CloseButton.BackgroundTransparency = 1
+CloseButton.TextTransparency = 1
+ContentHolder.Visible = true
+
+tween(Main, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+	Size = openSize,
+	Position = centerPos,
+	BackgroundTransparency = 0
+})
+tween(Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+tween(TabsHolder, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0})
+tween(Selector, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0})
+tween(MainTab, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+tween(MechanicsTab, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+tween(InfoTab, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+tween(CloseButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+	BackgroundTransparency = 0,
+	TextTransparency = 0
+})
+
+local function switchTab(tab)
+	if switching or busy then
+		return
+	end
+
+	switching = true
+
+	if tab == "Main" then
+		MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+		MechanicsTab.TextColor3 = Color3.fromRGB(160, 160, 160)
+		InfoTab.TextColor3 = Color3.fromRGB(160, 160, 160)
+
+		tween(Selector, TweenInfo.new(0.28, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, 2, 0, 2)
+		})
+
+		tween(MainPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, 0, 0, 0)
+		})
+		tween(MechanicsPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(1, 30, 0, 0)
+		})
+		local done = tween(InfoPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(1, 30, 0, 0)
+		})
+		done.Completed:Wait()
+	elseif tab == "Mechanics" then
+		MainTab.TextColor3 = Color3.fromRGB(160, 160, 160)
+		MechanicsTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+		InfoTab.TextColor3 = Color3.fromRGB(160, 160, 160)
+
+		tween(Selector, TweenInfo.new(0.28, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(1/3, 2, 0, 2)
+		})
+
+		tween(MainPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(-1, -30, 0, 0)
+		})
+		tween(MechanicsPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, 0, 0, 0)
+		})
+		local done = tween(InfoPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(1, 30, 0, 0)
+		})
+		done.Completed:Wait()
+	else
+		MainTab.TextColor3 = Color3.fromRGB(160, 160, 160)
+		MechanicsTab.TextColor3 = Color3.fromRGB(160, 160, 160)
+		InfoTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+		tween(Selector, TweenInfo.new(0.28, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(2/3, 2, 0, 2)
+		})
+
+		tween(MainPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(-1, -30, 0, 0)
+		})
+		tween(MechanicsPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(-1, -30, 0, 0)
+		})
+		local done = tween(InfoPage, TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, 0, 0, 0)
+		})
+		done.Completed:Wait()
+	end
+
+	switching = false
+end
+
+MainTab.MouseButton1Click:Connect(function()
+	switchTab("Main")
+end)
+
+MechanicsTab.MouseButton1Click:Connect(function()
+	switchTab("Mechanics")
+end)
+
+InfoTab.MouseButton1Click:Connect(function()
+	switchTab("Info")
+end)
+
+CloseButton.MouseEnter:Connect(function()
+	if opened and not busy then
+		tween(CloseButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = Color3.fromRGB(48, 48, 48)
+		})
+	end
+end)
+
+CloseButton.MouseLeave:Connect(function()
+	if opened and not busy then
+		tween(CloseButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+		})
+	end
+end)
+
+local function closeUI()
+	if busy or not opened then
+		return
+	end
+
+	busy = true
+	opened = false
+
+	MiniLogo.Position = logoPos
+	MiniLogo.Size = UDim2.new(0, 20, 0, 20)
+	MiniLogo.BackgroundTransparency = 1
+	MiniLogo.TextTransparency = 1
+	MiniLogo.Visible = true
+
+	tween(Title, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1})
+	tween(TabsHolder, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+	tween(Selector, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1})
+	tween(MainTab, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1})
+	tween(MechanicsTab, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1})
+	tween(InfoTab, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1})
+	tween(CloseButton, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 1,
+		TextTransparency = 1
+	})
+
+	task.wait(0.05)
+
+	local shrink = tween(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut), {
+		Size = closedSize,
+		Position = logoPos,
+		BackgroundTransparency = 1
+	})
+
+	tween(MiniLogo, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut), {
+		Size = closedSize,
+		Position = logoPos,
+		BackgroundTransparency = 0,
+		TextTransparency = 0
+	})
+
+	shrink.Completed:Wait()
+	Main.Visible = false
+	ContentHolder.Visible = false
+
+	busy = false
+end
+
+local function openUI()
+	if busy or opened then
+		return
+	end
+
+	busy = true
+	opened = true
+
+	Main.Position = centerPos
+	Main.Size = closedSize
+	Main.BackgroundTransparency = 1
+	Main.Visible = true
+	ContentHolder.Visible = true
+
+	Title.TextTransparency = 1
+	TabsHolder.BackgroundTransparency = 1
+	Selector.BackgroundTransparency = 1
+	MainTab.TextTransparency = 1
+	MechanicsTab.TextTransparency = 1
+	InfoTab.TextTransparency = 1
+	CloseButton.BackgroundTransparency = 1
+	CloseButton.TextTransparency = 1
+
+	local grow = tween(Main, TweenInfo.new(0.42, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+		Size = openSize,
+		Position = centerPos,
+		BackgroundTransparency = 0
+	})
+
+	tween(MiniLogo, TweenInfo.new(0.32, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 20, 0, 20),
+		BackgroundTransparency = 1,
+		TextTransparency = 1
+	})
+
+	task.wait(0.1)
+
+	tween(Title, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+	tween(TabsHolder, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0})
+	tween(Selector, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0})
+	tween(MainTab, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+	tween(MechanicsTab, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+	tween(InfoTab, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0})
+	tween(CloseButton, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 0,
+		TextTransparency = 0
+	})
+
+	grow.Completed:Wait()
+	MiniLogo.Visible = false
+
+	busy = false
+end
+
+CloseButton.MouseButton1Click:Connect(closeUI)
+MiniLogo.MouseButton1Click:Connect(openUI)
+
+-- examples for adding stuff later:
+-- UI.Mechanics:AddButton("Test Button", function()
+-- 	print("clicked")
+-- end)
+--
+-- UI.Mechanics:AddToggle("Test Toggle", false, function(state)
+-- 	print("toggle:", state)
+-- end)
+--
+-- UI.Info:AddCard("Credits", "put whatever here")
