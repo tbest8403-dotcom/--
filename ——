@@ -765,6 +765,8 @@ end
 CloseButton.MouseButton1Click:Connect(closeUI)
 MiniLogo.MouseButton1Click:Connect(openUI)
 
+return UI
+
 -- examples for adding stuff later:
 -- UI.Mechanics:AddButton("Test Button", function()
 -- 	print("clicked")
